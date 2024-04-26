@@ -18,7 +18,7 @@ function generateTransactionId(length, store_code) {
 }
 
 // API endpoint for inputting expired goods data
-app.post("/api/detail-item", async (req, res) => {
+app.post("/apiMobile/detail-item", async (req, res) => {
   console.log("/api/detail-item", req.body);
 
   const pool = new Pool({
