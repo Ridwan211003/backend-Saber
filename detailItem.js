@@ -17,9 +17,9 @@ function generateTransactionId(length, store_code) {
   return result + store_code;
 }
 
-// API endpoint for inputting expired goods data
-app.post("/apiMobile/detail-item", async (req, res) => {
-  console.log("/api/detail-item", req.body);
+// API untuk menginput barang
+app.post("/apiMobile/save-item", async (req, res) => {
+  console.log("/api/save-item", req.body);
 
   const pool = new Pool({
     host: "10.21.9.44",
@@ -84,23 +84,21 @@ app.post("/apiMobile/detail-item", async (req, res) => {
   });
 });
 
-// API endpoint to retrieve barcode data
+// API untuk mengambil data barcode
 app.post("/apiMobile/master-item", function (req, res){
 
   const oracledb = require('oracledb');
   const dbConfig = {
   user: 'triitmd',
   password: 'triitmd',
-  connectString: 'db146.id007.trid-corp.net:1521/PRODDB2', // e.g., "localhost:1521/xe" for a local Oracle XE database
+  connectString: 'db146.id007.trid-corp.net:1521/PRODDB2',
   };
 
   async function run() {
   let connection;
   try {
-      // Get a connection from the default connection pool
       const connection = await oracledb.getConnection(dbConfig);
 
-      // Execute a query
       const barcode = req.body.barcode;
       const storecode = req.body.storecode; 
 
@@ -131,13 +129,11 @@ app.post("/apiMobile/master-item", function (req, res){
           console.log("gak ada datanya coy");
           res.status(404).json({ message: "Data tidak ditemukan." });
       }
-      // Log the result
       //console.log(result.rows.length);
   } catch (error) {
       console.error('Error executing query:', error);
       res.status(500).json({ error: 'Internal Server Error' });
   } finally {
-      // Release the connection
       if (connection) {
       try {
           await connection.close();
@@ -147,8 +143,38 @@ app.post("/apiMobile/master-item", function (req, res){
       }
   }
   }
-  // Call the run function to execute the query
    run();
+});
+
+// API untuk menampilkan data yang expired <= 3 bulan
+app.get('/apiMobile/list-expired', async (req, res) => {
+
+  const pool = new Pool({
+    host: '10.21.9.44',
+    user: 'itapps',
+    password: 'itapps123',
+    database: 'item_expired',
+    port: 5555,
+  });
+
+  try {
+    const result = await pool.query(
+      `SELECT age(expired_date, current_date) as masa_expired, a.* 
+      FROM detail_item.bebas_expired a
+      WHERE icone_plane = 'didata' 
+      AND age(expired_date, current_date) <= '3 mons'
+      ORDER BY expired_date ASC
+      LIMIT 100;`
+    );
+    const expiredData = result.rows;
+    
+    console.log('Data yang berhasil diambil:', expiredData);
+
+    res.json(expiredData);
+  } catch (error) {
+    console.error('Terjadi kesalahan:', error);
+    res.status(500).json({ error: 'Terjadi kesalahan saat mengambil data barang yang mendekati expired date' });
+  }
 });
 
 app.listen(port, () => {
