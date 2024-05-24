@@ -21,6 +21,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(formidableMiddleware());
 
+// API untuk login user
 app.post('/apiMobile/login', async (req, res) => {
 
   const axiosInstance = axios.create({
@@ -382,11 +383,11 @@ app.get('/apiMobile/dashboard-expiringSoon', async (req, res) => {
     const closestItemsQuery = `
           SELECT *,
           ie_expired_date - CURRENT_DATE AS remaining_days,
-          TO_CHAR(ie_expired_date, 'YYYY-MM-DD') AS closest_item_expired_date  -- Ganti alias menjadi closest_item_expired_date
+          TO_CHAR(ie_expired_date, 'YYYY-MM-DD') AS closest_item_expired_date
           FROM mobile_apps.item_expired
           WHERE ie_action = '1'
           AND ie_expired_date <= CURRENT_DATE + INTERVAL '3 months'
-          ORDER BY ie_expired_date  -- Menggunakan kolom tanpa alias
+          ORDER BY ie_expired_date
           LIMIT 10;
       `;
     const closestExpirationQuery = `
@@ -394,12 +395,12 @@ app.get('/apiMobile/dashboard-expiringSoon', async (req, res) => {
           FROM mobile_apps.item_expired
           WHERE ie_action = '1'
           AND ie_expired_date <= CURRENT_DATE + INTERVAL '3 months'
-          ORDER BY ie_expired_date  -- Menggunakan kolom tanpa alias
+          ORDER BY ie_expired_date
           LIMIT 1;
       `;
 
     const nearestExpirationResult = await pool.query(nearestExpirationQuery);
-    const totalItemNearingExpiration = nearestExpirationResult.rows[0].total_item_nearing_expiration;
+    const totalItemNearingExpiration = nearestExpirationResult.rows.length > 0 ? nearestExpirationResult.rows[0].total_item_nearing_expiration : 0;
 
     const closestItemsResult = await pool.query(closestItemsQuery);
     const closestItems = closestItemsResult.rows.map(item => {
@@ -410,7 +411,7 @@ app.get('/apiMobile/dashboard-expiringSoon', async (req, res) => {
     });
 
     const closestExpirationResult = await pool.query(closestExpirationQuery);
-    const nearestExpirationDate = closestExpirationResult.rows[0].nearest_expiration_date;
+    const nearestExpirationDate = closestExpirationResult.rows.length > 0 ? closestExpirationResult.rows[0].nearest_expiration_date : null;
 
     const dashboardData = {
       total_item_nearing_expiration: totalItemNearingExpiration,
